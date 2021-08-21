@@ -1,0 +1,89 @@
+The GameBoy
+
+CPU:
+    4.19 MHz Clock Cycle
+    Some instructions are listed in *clock cycles* and others in *machine cyles*
+        1 machine cycle = 4 clock cycles
+    Based on modified Z80 and 8080
+
+    Instructions:
+        There are many instructions, so to have the code a little more structured
+        than just having a huge switch case, an instruction struct is necessary.
+        It should hold:
+            string: mnemonic (for debugging purposes)
+            uint: clock cycles
+            func*: instruction function
+
+        To make programming it easier, we can have an array of these instructions
+        and decode the opcode by simply indexing that array.
+
+        The GB also has instructions that are prefixed by 0xCB. When this occurs
+        we can use the following byte in memory to index a different array that holds 
+        the respective instruction for the 0xCB set.
+
+Registers:
+    Eight 8-bit registers: A, B, C, D, E, F, H, and L. 
+    These are often combined into four 16-bit registers: AF, BC, DE, HL
+    Two 16-bit registers: stack pointer (SP) and program counter (PC)
+
+    The F register is used as the flag register:
+    7 6 5 4 3 2 1 0
+    Z N H C 0 0 0 0 
+
+    Z: set if the operation resulted in 0 or two values are equal when using CP
+    N: set if a subtraction was performed
+    H: set if half carry occurred
+    C: set if a carry occurred or if A register is the smaller value when using CP
+
+    PC is set to 0x100 on startup
+    SP is set to 0xFFFE on startup, and it grows downwards
+
+
+Timer: 
+    The timer has a selectable frequency:
+        0x1000 Hz
+        0x4000 Hz
+        0x10000 Hz
+        0x40000 Hz
+    When it overflows, it generates an interrupt. It's then loaded with the
+    contents of Timer Modulo (TMA)
+
+Interrupts:
+    The Interrupt Master Enable (IME) flag is reset by the Disable Interrupt (DI)
+    and prohibits all interrupts. It is set by the Enable Interrupt (EI) and sets the IE register.
+
+        - When an interrupt is generated, the IF flag is set
+        - If the IME flag is set, and the IE flag is set, then:
+            - Reset the IME flag
+            - Push the PC onto the stack
+            - Jump to the starting address of the interrupt
+    
+Memory:
+    8 KB SRAM
+    8 KB VRAM
+    256 B Boostrap ROM
+
+Screen:
+    160 width x 144 height pixels (20 x 18 tiles)
+    4 shades of green or green: 0x0, 0x1, 0x2, 0x3 
+
+Input: 
+    Eight-way DPAD
+    Four buttons: A, B, START, SELECT
+    Volume potentiometer
+    Contrast potentiometer
+    
+Cartridges:
+    Execution usually begins at 0x100, where typically a NOP or JP instruction 
+    is found
+    
+Reserved Memory:
+    0x00 -> 0x60 is reserved for restart calls and interrupts
+    0x100 -> 0x103 is the start location for carts
+    0x104 -> 0x133 is the scrolling nintendo graphic 
+    0x134 -> 0x142 is the title of the game in upper case ASCII
+
+Debugging tools:
+    Debugging is and will be a huge aspect of this project. To ease, we should be
+    able to run the GB in a debugger mode, where we can advance a single frame
+    and display important information (register contents, opcode, relevant memory, etc)
